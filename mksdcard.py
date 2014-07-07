@@ -140,20 +140,21 @@ def partition_disk(disk):
     return 0
 
 
-def mount_partitions(disk,tmp_dir,partitions,fs):
+def mount_partitions(disk,mnt_dir,partitions,fs):
     
     for pname in partitions:
-        os.mkdir(tmp_dir+pname)
+        if os.path.exists(mnt_dir+pname) ==  False: 
+            os.mkdir(mnt_dir+pname)
         # Append to the partition structure the destination path for this partition
-        partitions.get(pname).append(tmp_dir+pname)
+        partitions.get(pname).append(mnt_dir+pname)
         
-    print "Mount points created in "+tmp_dir
+    print "Mount points created in "+mnt_dir
     
     for pname in partitions:
-        if os.path.ismount(tmp_dir + pname)== False:        
-            mount_cmd = ["mount", "-t"+fs,disk+partitions.get(pname)[0],tmp_dir+pname]
+        if os.path.ismount(mnt_dir + pname)== False:        
+            mount_cmd = ["mount", "-t"+fs,disk+partitions.get(pname)[0],mnt_dir+pname]
             p = subprocess.Popen(mount_cmd, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-            print "Mounting "+tmp_dir+pname
+            print "Mounting " + mnt_dir + pname
             os.waitpid(p.pid,0)
         else:
             continue
