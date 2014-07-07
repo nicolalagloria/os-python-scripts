@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 import py_compile
 import optparse
 import os
+import shutil
 def main():
     
     version = "pymake 1.0 (c) 2014 Nicola La Gloria"
@@ -48,9 +49,7 @@ def compile_file(filename):
     
     exe_name = filename.split(".")[0]
     
-    os.rename(exe_name + ".pyc",exe_name)    
-        
-    os.chmod(exe_name,755)
+    shutil.copy(exe_name+".pyc",exe_name)   
     
     print "done."
     return 0
