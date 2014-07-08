@@ -25,6 +25,7 @@ import os
 import subprocess
 import tempfile
 import shutil 
+from time import sleep
 
 def main():
     
@@ -169,8 +170,11 @@ def unmount_partitions(disk,tmp_dir,partitions):
         if os.path.ismount(tmp_dir+pname) == True:
             umount_cmd = ["umount", tmp_dir+pname]
             p = subprocess.Popen(umount_cmd, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-            os.waitpid(p.pid,0)
-            os.rmdir(tmp_dir+pname)
+            sleep(2)
+            while (p.poll() == None):
+                print p.poll()
+                p.wait()
+            shutil.rmtree(tmp_dir+pname)
     print "DONE"
     
     return 0
