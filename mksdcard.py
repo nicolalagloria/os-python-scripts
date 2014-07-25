@@ -69,7 +69,7 @@ def main():
 
     op.add_option ("-f" , "--filesystem", action = "store", type = "string", dest = "filesystem")
 
-    op.set_defaults (disk = "/dev/null", erasedos = True, img_dir = os.getcwd(), filesystem = "ext4", apps_dir = os.getcwd()+"/apps", mount_dir = tempfile.mkdtemp("-andr_part-"))
+    op.set_defaults (disk = "/dev/null", erasedos = True, img_dir = os.getcwd(), filesystem = "ext4", apps_dir = os.getcwd()+"/apps", mount_dir = tempfile.mkdtemp("-andr_part"))
 
     opt, args = op.parse_args()
 
@@ -143,19 +143,25 @@ def partition_disk(disk):
 
 def mount_partitions(disk,mnt_dir,partitions,fs):
     
-    for pname in partitions:
-        if os.path.exists(mnt_dir+pname) ==  False: 
-            os.mkdir(mnt_dir+pname)
-        # Append to the partition structure the destination path for this partition
-        partitions.get(pname).append(mnt_dir+pname)
+    # Parent directory --parent of mkdir is not supported in pythin 2.x 
+    if os.path.exists(mnt_dir) ==  False: 
+        os.mkdir(mnt_dir)
         
-    print "Mount points created in "+mnt_dir
+    for pname in partitions:
+        mypath = os.path.join(mnt_dir,pname)
+        if os.path.exists(mypath) ==  False: 
+            os.mkdir(mypath)
+        # Append to the partition structure the destination path for such partition
+        partitions.get(pname).append(mypath)
+        
+    print "Mount points created in "+ mypath
     
     for pname in partitions:
-        if os.path.ismount(mnt_dir + pname)== False:        
-            mount_cmd = ["mount", "-t"+fs,disk+partitions.get(pname)[0],mnt_dir+pname]
+        mypath = os.path.join(mnt_dir,pname)
+        if os.path.ismount(mypath)== False:        
+            mount_cmd = ["mount", "-t"+fs,disk+partitions.get(pname)[0],mypath]
             p = subprocess.Popen(mount_cmd, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-            print "Mounting " + mnt_dir + pname
+            print "Mounting " + mypath
             os.waitpid(p.pid,0)
         else:
             continue
@@ -163,18 +169,21 @@ def mount_partitions(disk,mnt_dir,partitions,fs):
     
     return 0
 
-def unmount_partitions(disk,tmp_dir,partitions):
+def unmount_partitions(disk,mnt_dir,partitions):
     
     print "Unmouting partitions"
     for pname in partitions:
-        if os.path.ismount(tmp_dir+pname) == True:
-            umount_cmd = ["umount", tmp_dir+pname]
+        mypath = os.path.join(mnt_dir,pname)
+        if os.path.ismount(mypath) == True:
+            umount_cmd = ["umount", mypath]
             p = subprocess.Popen(umount_cmd, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
             sleep(2)
             while (p.poll() == None):
                 print p.poll()
                 p.wait()
-            shutil.rmtree(tmp_dir+pname)
+        shutil.rmtree(mypath)
+    # remove the parent
+    os.rmdir(mnt_dir)
     print "DONE"
     
     return 0
@@ -186,6 +195,7 @@ def write_disk(disk,dest_dir, source_dir, apps_dir, partitions):
     # Return files the in the apps dir
     apps = os.listdir(apps_dir)
     
+    # TODO: exit and unmount all partitions if an errror occurs when copying files
     for pname in partitions:
         if pname == "BOOT":
             print "copying files in " + pname
