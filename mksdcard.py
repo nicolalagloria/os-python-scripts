@@ -61,7 +61,9 @@ def main():
 
     op.add_option ("-e" , "--erase_dos", action = "store_true", dest = "erasedos")
 
-    op.add_option ("-p" , "--apps_dir", action = "store", type = "string", dest = "apps_dir")
+    op.add_option ("-p" , "--apps_local_dir", action = "store", type = "string", dest = "apps_local_dir")
+    
+    op.add_option ("-q" , "--apps_device_dir", action = "store", type = "string", dest = "apps_device_dir")
 
     op.add_option ("-i" , "--img_dir", action = "store", type = "string",  dest = "img_dir")
 
@@ -69,7 +71,7 @@ def main():
 
     op.add_option ("-f" , "--filesystem", action = "store", type = "string", dest = "filesystem")
 
-    op.set_defaults (disk = "/dev/null", erasedos = True, img_dir = os.getcwd(), filesystem = "ext4", apps_dir = os.getcwd()+"/apps", mount_dir = tempfile.mkdtemp("-andr_part"))
+    op.set_defaults (disk = "/dev/null", erasedos = True, img_dir = os.getcwd(), filesystem = "ext4", apps_local_dir = os.getcwd()+"/apps", apps_device_dir = "app",  mount_dir = tempfile.mkdtemp("-andr_part"))
 
     opt, args = op.parse_args()
 
@@ -91,7 +93,7 @@ def main():
     
     mount_partitions(opt.disk, opt.mount_dir, partitions,opt.filesystem)
     
-    write_disk(opt.disk, opt.mount_dir, opt.img_dir, opt.apps_dir, partitions)
+    write_disk(opt.disk, opt.mount_dir, opt.img_dir, opt.apps_local_dir, opt.apps_device_dir, partitions)
     
     unmount_partitions(opt.disk, opt.mount_dir, partitions)
     
@@ -189,12 +191,14 @@ def unmount_partitions(disk,mnt_dir,partitions):
     return 0
 
         
-def write_disk(disk,dest_dir, source_dir, apps_dir, partitions):
+def write_disk(disk,dest_dir, source_dir, apps_local_dir, apps_device_dir, partitions):
 
 
     # Return files the in the apps dir
-    apps = os.listdir(apps_dir)
-    
+    try:
+        apps = os.listdir(apps_local_dir)
+    except:
+        apps =[];
     # TODO: exit and unmount all partitions if an errror occurs when copying files
     for pname in partitions:
         if pname == "BOOT":
@@ -207,10 +211,10 @@ def write_disk(disk,dest_dir, source_dir, apps_dir, partitions):
                 shutil.copy(source_dir + "/" + file, partitions.get(pname)[2])
                 if file == "uramdisk-recovery.img":
                     os.rename(partitions.get(pname)[2]+ "/" +file, partitions.get(pname)[2]+ "/uramdisk.img")
-        elif pname == "DATA":
+        elif (pname == "DATA") and (apps):
             print "copying files in " + pname
-            if os.path.isdir(partitions.get(pname)[2]+"/app") == False:
-                os.mkdir(partitions.get(pname)[2]+"/app")
+            if os.path.isdir(partitions.get(pname)[2]+"/"+apps_device_dir) == False:
+                os.mkdir(partitions.get(pname)[2]+"/",apps_device_dir)
             for app in apps:
                 shutil.copy(apps_dir + "/" + app, partitions.get(pname)[2]+"/app") 
         else:
